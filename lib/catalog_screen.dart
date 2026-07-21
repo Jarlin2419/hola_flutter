@@ -31,7 +31,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       // Petición GET al endpoint de productos de tu backend
 
       final response = await http.get(
-        Uri.parse('http://127.0.0.1:3000/api/products'), // <-- Ruta exacta según tu routes.js
+        Uri.parse('https://ecohome-backend-main.onrender.com/api'), // <-- Ruta exacta según tu routes.js
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',

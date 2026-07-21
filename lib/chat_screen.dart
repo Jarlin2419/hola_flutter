@@ -27,7 +27,7 @@ class _ChatScreenState extends State<ChatScreen> {
     String? token = await _storage.read(key: 'jwt_token');
 
     // 2. Configurar la conexión con Socket.IO enviando el token en el handshake (auth)
-    socket = IO.io('http://127.0.0.1:3000', <String, dynamic>{
+    socket = IO.io('https://ecohome-backend-main.onrender.com/api', <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
       'auth': {'token': token}, // Coincide con el middleware authSocket de tu backend

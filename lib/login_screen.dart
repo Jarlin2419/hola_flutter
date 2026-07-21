@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     // Si usas Windows, usa 127.0.0.1. Si usas emulador Android, usa 10.0.2.2
-    final url = Uri.parse('http://127.0.0.1:3000/api/auth/login');
+    final url = Uri.parse('https://ecohome-backend-main.onrender.com/api');
 
     try {
       final response = await http.post(
