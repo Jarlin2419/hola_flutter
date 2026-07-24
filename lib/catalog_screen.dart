@@ -1,4 +1,6 @@
 import 'chat_screen.dart';
+import 'add_product_screen.dart';
+import 'login_screen.dart'; // <--- Importado para redirigir al cerrar sesión
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -25,20 +27,15 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   Future<void> _fetchProducts() async {
     try {
-      // Recuperar el JWT almacenado previamente en el login
       String? token = await _storage.read(key: 'jwt_token');
 
-      // Petición GET al endpoint de productos de tu backend
-
       final response = await http.get(
-        Uri.parse('https://ecohome-backend-main.onrender.com/api'), // <-- Ruta exacta según tu routes.js
+        Uri.parse('https://ecohome-backend-main.onrender.com/api/products'),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
         },
       );
-
-
 
       if (response.statusCode == 200) {
         setState(() {
@@ -59,29 +56,27 @@ class _CatalogScreenState extends State<CatalogScreen> {
     }
   }
 
+  // <--- NUEVO: Método para cerrar sesión --->
+  Future<void> _logout() async {
+    await _storage.delete(key: 'jwt_token'); // Borra el token guardado
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+            (route) => false, // Elimina todas las pantallas anteriores de la pila
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
-      /*appBar: AppBar(
-        title: const Text('EcoHome Store - Catálogo'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.chat),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ChatScreen()),
-              );
-            },
-          ),
-        ],
-      ),*/
       appBar: AppBar(
         title: const Text('EcoHome Store - Catálogo'),
         actions: [
+          // Botón del Chat
           Padding(
-            padding: const EdgeInsets.only(right: 12.0), // Añade espacio hacia el borde derecho
+            padding: const EdgeInsets.only(right: 4.0),
             child: IconButton(
               icon: const Icon(Icons.chat),
               onPressed: () {
@@ -90,6 +85,15 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   MaterialPageRoute(builder: (context) => const ChatScreen()),
                 );
               },
+            ),
+          ),
+          // <--- NUEVO: Botón de Cerrar Sesión en el AppBar --->
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Cerrar Sesión',
+              onPressed: _logout,
             ),
           ),
         ],
@@ -116,6 +120,24 @@ class _CatalogScreenState extends State<CatalogScreen> {
             ),
           );
         },
+      ),
+      // Botón flotante para agregar producto
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddProductScreen()),
+          );
+
+          if (result == true) {
+            setState(() {
+              isLoading = true;
+            });
+            _fetchProducts();
+          }
+        },
+        backgroundColor: Colors.green.shade700,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

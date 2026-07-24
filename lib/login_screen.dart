@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-// Asegúrate de importar tu pantalla de catálogo (ajusta la ruta si es necesario)
 import 'catalog_screen.dart';
+import 'register_screen.dart'; // <--- Importa la pantalla de registro
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,8 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _storage = const FlutterSecureStorage();
 
   Future<void> _login() async {
-    // Si usas Windows, usa 127.0.0.1. Si usas emulador Android, usa 10.0.2.2
-    final url = Uri.parse('https://ecohome-backend-main.onrender.com/api');
+    final url = Uri.parse('https://ecohome-backend-main.onrender.com/api/auth/login');
 
     try {
       final response = await http.post(
@@ -33,11 +33,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        final token = data['token'];
 
-        // 1. Extraer el token de la respuesta del backend
-        final token = data['token']; // Asegúrate de que tu backend devuelva la llave 'token'
-
-        // 2. Guardar el token de forma segura
         await _storage.write(key: 'jwt_token', value: token);
 
         if (mounted) {
@@ -45,14 +42,12 @@ class _LoginScreenState extends State<LoginScreen> {
             const SnackBar(content: Text("Login exitoso")),
           );
 
-          // 3. Redirigir al catálogo limpiando la pila de pantallas
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const CatalogScreen()),
           );
         }
       } else {
-        // Muestra el error específico enviado por tu backend
         final errorBody = json.decode(response.body);
         final errorMsg = errorBody['message'] ?? 'Credenciales inválidas';
         if (mounted) {
@@ -65,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
       print("Error de conexión: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error de conexión con el servidor")),
+          const SnackBar(content: Text("Error de conexión con el servidor")),
         );
       }
     }
@@ -94,6 +89,35 @@ class _LoginScreenState extends State<LoginScreen> {
             ElevatedButton(
               onPressed: _login,
               child: const Text('Ingresar'),
+            ),
+
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                );
+              },
+              child: const Text(
+                '¿Olvidaste tu contraseña?',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+
+
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                );
+              },
+              child: const Text(
+                '¿No tienes una cuenta? Regístrate aquí',
+                style: TextStyle(color: Colors.green),
+              ),
             ),
           ],
         ),

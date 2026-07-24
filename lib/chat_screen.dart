@@ -23,59 +23,75 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _initSocket() async {
-    // 1. Recuperar el token JWT almacenado en el login
     String? token = await _storage.read(key: 'jwt_token');
 
-    // 2. Configurar la conexión con Socket.IO enviando el token en el handshake (auth)
-    socket = IO.io('https://ecohome-backend-main.onrender.com/api', <String, dynamic>{
+    if (!mounted) return;
+
+    // Configuración robusta para mantener la conexión activa con Render
+    socket = IO.io('https://ecohome-backend-main.onrender.com', <String, dynamic>{
       'transports': ['websocket'],
-      'autoConnect': false,
-      'auth': {'token': token}, // Coincide con el middleware authSocket de tu backend
+      'autoConnect': true, // Permitir conexión automática inmediata
+      'reconnection': true, // Forzar reintentos si se pierde la conexión
+      'reconnectionAttempts': 5,
+      'reconnectionDelay': 1000,
+      'auth': {'token': token},
     });
 
-    socket.connect();
-
-    // 3. Escuchar evento de conexión exitosa
     socket.onConnect((_) {
-      setState(() {
-        isConnected = true;
-      });
-      print('[Socket.IO] Conectado exitosamente al servidor');
+      if (mounted) {
+        setState(() {
+          isConnected = true;
+        });
+      }
+      print('[Socket.IO] Conectado exitosamente');
     });
 
-    // 4. Recibir el historial inicial de los últimos mensajes desde la BD
+    socket.onConnectError((data) {
+      print('[Socket.IO] Error de conexión: $data');
+      if (mounted) {
+        setState(() {
+          isConnected = false;
+        });
+      }
+    });
+
     socket.on('history', (data) {
-      setState(() {
-        messages = data;
-      });
+      if (mounted) {
+        setState(() {
+          messages = data;
+        });
+      }
     });
 
-    // 5. Escuchar nuevos mensajes enviados en tiempo real por cualquier usuario
     socket.on('new-message', (data) {
-      setState(() {
-        messages.add(data); // Añade el mensaje en tiempo real a la lista
-      });
+      if (mounted) {
+        setState(() {
+          messages.add(data);
+        });
+      }
     });
 
     socket.onDisconnect((_) {
-      setState(() {
-        isConnected = false;
-      });
-      print('[Socket.IO] Desconectado del servidor');
+      if (mounted) {
+        setState(() {
+          isConnected = false;
+        });
+      }
+      print('[Socket.IO] Desconectado');
     });
   }
 
   void _sendMessage() {
     if (_messageController.text.trim().isEmpty) return;
-
-    // Emitir el mensaje al evento 'new-message' que escucha tu servidor Node.js
     socket.emit('new-message', _messageController.text.trim());
     _messageController.clear();
   }
 
   @override
   void dispose() {
-    socket.dispose();
+    socket.clearListeners();
+    socket.disconnect();
+    socket.destroy();
     _messageController.dispose();
     super.dispose();
   }
@@ -86,10 +102,10 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         title: Text(isConnected ? 'EcoHome Chat (En línea)' : 'EcoHome Chat (Conectando...)'),
         backgroundColor: isConnected ? Colors.green.shade700 : Colors.orange.shade700,
+        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
-          // Lista de mensajes en tiempo real
           Expanded(
             child: ListView.builder(
               itemCount: messages.length,
@@ -112,7 +128,6 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          // Caja de texto para redactar el mensaje
           Container(
             padding: const EdgeInsets.all(8.0),
             color: Colors.grey.shade200,
